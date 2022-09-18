@@ -1,18 +1,22 @@
 package com.example.whereisthis
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.net.Uri.fromParts
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.StrictMode
 import android.os.StrictMode.VmPolicy
+import android.provider.Settings
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -20,6 +24,7 @@ import com.opencsv.CSVWriter
 import java.io.File
 import java.io.FileWriter
 import java.io.IOException
+import java.net.URI
 import kotlin.math.roundToInt
 
 
@@ -41,16 +46,11 @@ class MainActivity : AppCompatActivity() {
         var DD_long_value:String = ""
         var DD_lat_value:String = ""
         var DMS_value:String = ""
-        checkForPermision(android.Manifest.permission.MANAGE_EXTERNAL_STORAGE, "storage", STORAGE_RQ)
+//        checkForPermision(android.Manifest.permission.MANAGE_EXTERNAL_STORAGE, "storage", STORAGE_RQ)
 //        checkForPermision(android.Manifest.permission.READ_EXTERNAL_STORAGE, "storage", STORAGE_RQ)
 
-        val isNewFileCreated :Boolean = File(csv).createNewFile()
 
-        if(isNewFileCreated){
-            println("$csv is created successfully.")
-        } else{
-            println("already exists.")
-        }
+
 
         btn_save_csv.setOnClickListener {
             btn_convert.performClick()
@@ -59,20 +59,31 @@ class MainActivity : AppCompatActivity() {
             val output = ID_value.toString()+",Lat:"+DD_lat_value+"Long:"+DD_long_value+",DMS:"+DMS_value
 
 //            checkForPermision(android.Manifest.permission.WRITE_EXTERNAL_STORAGE, "storage", STORAGE_RQ)
-            writeCSV(ID_value,"Lat:"+DD_lat_value,"Long:"+DD_long_value, DMS_value)
-            ID_value++
-            val builder = VmPolicy.Builder()
-            StrictMode.setVmPolicy(builder.build())
-            val emailIntent = Intent(Intent.ACTION_SEND)
-            emailIntent.type = "text/plain"
-            emailIntent.putExtra(Intent.EXTRA_EMAIL, arrayOf("email@example.com"))
-            emailIntent.putExtra(Intent.EXTRA_SUBJECT, "subject here")
-            emailIntent.putExtra(Intent.EXTRA_TEXT, "body text")
 
-            val file = File(csv)
-            val uri = Uri.fromFile(file)
-            emailIntent.putExtra(Intent.EXTRA_STREAM, uri)
-            startActivity(Intent.createChooser(emailIntent, "Pick an Email provider"))
+            if(checkPermission()){
+                writeCSV(ID_value,"Lat:"+DD_lat_value,"Long:"+DD_long_value, DMS_value)
+                ID_value++
+                val builder = VmPolicy.Builder()
+                StrictMode.setVmPolicy(builder.build())
+                val emailIntent = Intent(Intent.ACTION_SEND)
+                emailIntent.type = "text/plain"
+                emailIntent.putExtra(Intent.EXTRA_EMAIL, arrayOf("email@example.com"))
+                emailIntent.putExtra(Intent.EXTRA_SUBJECT, "subject here")
+                emailIntent.putExtra(Intent.EXTRA_TEXT, "body text")
+
+                val file = File(csv)
+                val uri = Uri.fromFile(file)
+                emailIntent.putExtra(Intent.EXTRA_STREAM, uri)
+                startActivity(Intent.createChooser(emailIntent, "Pick an Email provider"))
+            }else
+            {
+                requestPermission()
+            }
+
+
+
+
+
         }
 
 
@@ -180,67 +191,87 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    fun checkForPermision(permission:String, name:String, requestCode:Int)
-    {
-        if(Build.VERSION.SDK_INT>= Build.VERSION_CODES.M){
-            when{
-                ContextCompat.checkSelfPermission(applicationContext, permission) == PackageManager.PERMISSION_GRANTED ->{
-                    Toast.makeText(
-                        this@MainActivity,
-                        "$name permission granted",
-                        Toast.LENGTH_SHORT
-                    ).show()
+    fun requestPermission(){
+        if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.R)
+        {
+            try{
+            val intent = Intent()
+                intent.action = Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION
+                val uri = Uri.fromParts("package",this.packageName, null)
+                intent.data = uri
+                storageActivityResultLauncher.launch(intent)
+
+            }catch(e:Exception){
+                val intent = Intent()
+                intent.action = Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION
+                storageActivityResultLauncher.launch(intent)
+            }
+        }else{
+            //Android below 11
+            ActivityCompat.requestPermissions(this,
+            arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE),
+                STORAGE_RQ
+            )
+        }
+    }
+    val storageActivityResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()){
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R){
+            if(Environment.isExternalStorageManager()){
+                val isNewFileCreated :Boolean = File(csv).createNewFile()
+
+                if(isNewFileCreated){
+                    println("$csv is created successfully.")
+                } else{
+                    println("already exists.")
+                }
+            }else{
+
+            }
+
+
+        }else
+        {
+            //Android below 11
+        }
+    }
+
+    fun checkPermission():Boolean{
+        return if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.R){
+            //Android is 11 or above
+            Environment.isExternalStorageManager()
+        }else{
+            //Android below 11
+            val write = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            val read = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+            write == PackageManager.PERMISSION_GRANTED && read == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if(requestCode == STORAGE_RQ)
+        {
+            if (grantResults.isNotEmpty()){
+                val write = grantResults[0] == PackageManager.PERMISSION_GRANTED
+                val read = grantResults[1] == PackageManager.PERMISSION_GRANTED
+                if(read && write ){
+                    val isNewFileCreated :Boolean = File(csv).createNewFile()
+
+                    if(isNewFileCreated){
+                        println("$csv is created successfully.")
+                    } else{
+                        println("already exists.")
+                    }
+                }else{
+
                 }
 
-                shouldShowRequestPermissionRationale(permission) -> showDialog(permission,name,requestCode)
-                else -> ActivityCompat.requestPermissions(this, arrayOf(permission), requestCode)
-
-
             }
         }
-
     }
 
-    @SuppressLint("MissingSuperCall")
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray)
-    {
-
-        fun innerCheck(name:String)
-       {
-           if(grantResults.isEmpty() || grantResults[0] != PackageManager.PERMISSION_GRANTED)
-           {
-               Toast.makeText(
-                   this@MainActivity,
-                   "$name Permission refused",
-                   Toast.LENGTH_SHORT
-               ).show()
-           }else
-           {
-               Toast.makeText(
-                   this@MainActivity,
-                   "$name Permission granted",
-                   Toast.LENGTH_SHORT
-               ).show()
-           }
-       }
-        when(requestCode){
-            STORAGE_RQ -> innerCheck("storage")
-
-        }
-    }
-
-    fun showDialog(permission:String, name:String, requestCode:Int){
-        val builder = AlertDialog.Builder(this)
-
-        builder.apply {
-            setMessage("Permission to acces your $name is required to use this app")
-            setTitle("Permission required")
-            setPositiveButton("OK"){
-                dialog, which ->
-                ActivityCompat.requestPermissions( this@MainActivity, arrayOf(permission),requestCode)
-            }
-        }
-        val dialog = builder.create()
-        dialog.show()
-    }
 }
