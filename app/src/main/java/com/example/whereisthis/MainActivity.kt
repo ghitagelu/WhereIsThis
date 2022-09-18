@@ -141,7 +141,7 @@ class MainActivity : AppCompatActivity() {
 
 
         val textView_dms = findViewById(R.id.textView_DMS) as TextView
-        val result :String = lat_degrees.toString()+""+lat_minutes.toString()+"'"+lat_seconds.toString()+"''"+"N   "+long_degrees.toString()+"°"+long_minutes.toString()+"'"+long_seconds.toString()+"''"+ "E"
+        val result :String = lat_degrees.toString()+"°"+lat_minutes.toString()+"'"+lat_seconds.toString()+"''"+"N   "+long_degrees.toString()+"°"+long_minutes.toString()+"'"+long_seconds.toString()+"''"+ "E"
         textView_dms.text = result
 //
 //
