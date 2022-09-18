@@ -18,6 +18,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.opencsv.CSVWriter
@@ -32,13 +33,16 @@ class MainActivity : AppCompatActivity() {
 
     var csv =        Environment.getExternalStorageDirectory().path + "/Locations.csv" // Here csv file name is MyCsvFile.csv
     val STORAGE_RQ = 101
+    val data: MutableList<Array<String>> = ArrayList()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         //Init
         val btn_convert = findViewById(R.id.button_convert) as Button
         val btn_save_csv = findViewById(R.id.button_save_csv) as Button
+        val btn_save_item = findViewById(R.id.button_save_item) as Button
         val textView_latitude = findViewById(R.id.editText_decimal_Latitude) as TextView
         val textView_longitude = findViewById(R.id.editText_decimal_Longitude) as TextView
         val textView_dms = findViewById(R.id.textView_DMS) as TextView
@@ -51,18 +55,29 @@ class MainActivity : AppCompatActivity() {
 
 
 
-
-        btn_save_csv.setOnClickListener {
+        btn_save_item.setOnClickListener{
             btn_convert.performClick()
-
             DMS_value = textView_dms.text.toString()
-            val output = ID_value.toString()+",Lat:"+DD_lat_value+"Long:"+DD_long_value+",DMS:"+DMS_value
+            data.add(arrayOf(ID_value.toString(),DD_lat_value,DD_long_value, DMS_value))
 
-//            checkForPermision(android.Manifest.permission.WRITE_EXTERNAL_STORAGE, "storage", STORAGE_RQ)
+            Toast.makeText(
+                this@MainActivity,
+                " Data No.$ID_value saved !",
+                Toast.LENGTH_SHORT
+            ).show()
+            ID_value++
+        }
+        btn_save_csv.setOnClickListener {
 
             if(checkPermission()){
-                writeCSV(ID_value,"Lat:"+DD_lat_value,"Long:"+DD_long_value, DMS_value)
-                ID_value++
+                Toast.makeText(
+                    this@MainActivity,
+                    "Please wait, file is generating...",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                writeCSV()
+
                 val builder = VmPolicy.Builder()
                 StrictMode.setVmPolicy(builder.build())
                 val emailIntent = Intent(Intent.ACTION_SEND)
@@ -78,17 +93,11 @@ class MainActivity : AppCompatActivity() {
             }else
             {
                 requestPermission()
+                btn_save_csv.performClick()
             }
-
-
-
-
-
         }
 
-
         btn_convert.setOnClickListener {
-
 
             if(textView_latitude.text.isNotEmpty() && textView_longitude.text.isNotEmpty())
             {
@@ -133,8 +142,8 @@ class MainActivity : AppCompatActivity() {
 //            ).show()
         }
 
-
-
+        data.add(arrayOf("ID","Latitude","Longitude", "DMS_value"))
+        btn_convert.performClick()
     }
 
     fun convert_to_dms(value_latitude : Double, value_longitude: Double)
@@ -165,14 +174,12 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    fun writeCSV(ID:Int, lat :String,long :String, DMS: String)
+    fun writeCSV()
     {
         var writer : CSVWriter? = null;
 
         try {
             writer = CSVWriter(FileWriter(csv))
-            val data: MutableList<Array<String>> = ArrayList()
-            data.add(arrayOf(ID.toString(), lat,long,DMS))
             writer.writeAll(data) // data is adding to csv
             try {
                 writer.close()
@@ -182,7 +189,7 @@ class MainActivity : AppCompatActivity() {
         } catch (e: IOException) {
             Toast.makeText(
                 this@MainActivity,
-                "FAiled",
+                "Permissions not granted",
 
                 Toast.LENGTH_SHORT
             ).show()

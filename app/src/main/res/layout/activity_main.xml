@@ -80,10 +80,23 @@
         android:id="@+id/button_save_csv"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="36dp"
+        android:layout_marginTop="12dp"
+        android:backgroundTint="#AA9A9A"
+        android:text="Share  CSV"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/button_save_item" />
+
+    <Button
+        android:id="@+id/button_save_item"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
         android:backgroundTint="#AA9A9A"
         android:text="Save in CSV"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView_DMS" />
 </androidx.constraintlayout.widget.ConstraintLayout>
