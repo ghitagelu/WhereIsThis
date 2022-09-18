@@ -50,6 +50,8 @@ class MainActivity : AppCompatActivity() {
         var DD_long_value:String = ""
         var DD_lat_value:String = ""
         var DMS_value:String = ""
+
+
 //        checkForPermision(android.Manifest.permission.MANAGE_EXTERNAL_STORAGE, "storage", STORAGE_RQ)
 //        checkForPermision(android.Manifest.permission.READ_EXTERNAL_STORAGE, "storage", STORAGE_RQ)
 
@@ -89,7 +91,7 @@ class MainActivity : AppCompatActivity() {
                 val file = File(csv)
                 val uri = Uri.fromFile(file)
                 emailIntent.putExtra(Intent.EXTRA_STREAM, uri)
-                startActivity(Intent.createChooser(emailIntent, "Pick an Email provider"))
+                startActivity(Intent.createChooser(emailIntent, "Chose where to share the CSV file"))
             }else
             {
                 requestPermission()
@@ -153,15 +155,29 @@ class MainActivity : AppCompatActivity() {
         val lat_minutes = ((value_latitude - lat_degrees)*60).toInt()
         val lat_seconds_result =(value_latitude - lat_degrees - (lat_minutes.toDouble()/60)) * 3600
         val lat_seconds = (lat_seconds_result * 100.0).roundToInt() / 100.0
+        val lat_direction:String
 
         val long_degrees = value_longitude.toInt()
         val long_minutes = ((value_longitude - long_degrees)*60).toInt()
         val long_seconds_result =(value_longitude - long_degrees - (long_minutes.toDouble()/60)) * 3600
         val long_seconds = (long_seconds_result * 100.0).roundToInt() / 100.0
+        val long_direction:String
 
+        if (lat_degrees < 0)
+        {
+            lat_direction ="S"
+        }else{
+            lat_direction ="N"
+        }
+        if (long_degrees < 0)
+        {
+            long_direction ="W"
+        }else{
+            long_direction ="E"
+        }
 
         val textView_dms = findViewById(R.id.textView_DMS) as TextView
-        val result :String = lat_degrees.toString()+"°"+lat_minutes.toString()+"'"+lat_seconds.toString()+"''"+"N   "+long_degrees.toString()+"°"+long_minutes.toString()+"'"+long_seconds.toString()+"''"+ "E"
+        val result :String = lat_degrees.toString()+"°"+lat_minutes.toString()+"'"+lat_seconds.toString()+"''"+lat_direction+"   "+long_degrees.toString()+"°"+long_minutes.toString()+"'"+long_seconds.toString()+"''"+ long_direction
         textView_dms.text = result
 //
 //
